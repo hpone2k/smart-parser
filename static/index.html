@@ -239,15 +239,116 @@ td{padding:.7rem .8rem;vertical-align:top}
 }
 .toast{position:fixed;bottom:1.5rem;right:1.5rem;z-index:200;background:var(--panel2);border:1px solid var(--purple3);border-radius:10px;padding:.75rem 1.2rem;font-family:var(--mono);font-size:.72rem;color:var(--purple2);box-shadow:0 8px 32px rgba(155,89,245,.2);transform:translateY(80px);opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1);max-width:300px}
 .toast.show{transform:translateY(0);opacity:1}
+
+/* ── LOGIN OVERLAY ── */
+.login-overlay{
+  position:fixed;inset:0;z-index:9999;
+  background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+  transition:opacity .4s ease;
+}
+.login-overlay.hidden{opacity:0;pointer-events:none}
+.login-card{
+  position:relative;width:100%;max-width:420px;margin:1rem;
+  background:linear-gradient(135deg,var(--panel) 0%,rgba(155,89,245,.06) 100%);
+  border:1px solid var(--border2);border-radius:20px;
+  padding:2.5rem 2rem;
+  box-shadow:0 0 40px rgba(155,89,245,.2),0 0 80px rgba(155,89,245,.08);
+  animation:cardGlow 4s ease-in-out infinite alternate;
+}
+@keyframes cardGlow{
+  0%{box-shadow:0 0 30px rgba(155,89,245,.2),0 0 60px rgba(155,89,245,.08)}
+  50%{box-shadow:0 0 40px rgba(199,125,255,.25),0 0 80px rgba(199,125,255,.1)}
+  100%{box-shadow:0 0 35px rgba(224,64,251,.2),0 0 70px rgba(224,64,251,.08)}
+}
+.login-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--purple3),var(--purple),var(--violet),var(--pink),var(--blue),var(--purple));
+  background-size:200% 100%;border-radius:20px 20px 0 0;
+  animation:borderSlide 3s linear infinite;
+}
+.login-logo{text-align:center;margin-bottom:1.75rem}
+.login-logo h2{
+  font-family:var(--head);font-size:1.3rem;font-weight:800;
+  letter-spacing:2px;text-transform:uppercase;
+  background:linear-gradient(135deg,var(--purple2) 0%,var(--violet) 50%,var(--pink) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:.3rem;
+}
+.login-logo .sub{font-family:var(--mono);font-size:.58rem;color:var(--text3);letter-spacing:2px}
+.login-logo .team-pill{
+  display:inline-block;margin-top:.6rem;
+  font-family:var(--mono);font-size:.63rem;font-weight:700;
+  color:var(--purple2);background:rgba(155,89,245,.15);
+  border:1px solid rgba(155,89,245,.35);border-radius:20px;padding:3px 14px;
+  animation:rgbCycle 6s linear infinite;
+}
+.login-divider{height:1px;background:linear-gradient(90deg,transparent,var(--border2),transparent);margin-bottom:1.5rem}
+.form-group{margin-bottom:1.1rem}
+.form-label{display:block;font-family:var(--mono);font-size:.6rem;color:var(--text3);letter-spacing:2px;text-transform:uppercase;margin-bottom:.45rem}
+.form-input{
+  width:100%;background:var(--bg3);border:1px solid var(--border2);
+  border-radius:8px;padding:.7rem 1rem;
+  font-family:var(--mono);font-size:.83rem;color:var(--text);
+  outline:none;transition:all .2s;
+}
+.form-input:focus{border-color:var(--purple);box-shadow:0 0 0 3px rgba(155,89,245,.15)}
+.form-input::placeholder{color:var(--text3)}
+.login-btn{
+  width:100%;margin-top:1.25rem;
+  background:linear-gradient(135deg,var(--purple3),var(--purple),var(--violet));
+  border:none;border-radius:10px;padding:.85rem;
+  font-family:var(--head);font-size:.83rem;font-weight:700;
+  color:white;letter-spacing:2px;text-transform:uppercase;
+  cursor:pointer;transition:all .25s;
+  box-shadow:0 4px 20px rgba(155,89,245,.3);
+}
+.login-btn:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(155,89,245,.45)}
+.login-btn:active{transform:translateY(0)}
+.login-btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+.login-error{
+  display:none;margin-top:.85rem;padding:.65rem 1rem;
+  background:rgba(255,92,138,.1);border:1px solid rgba(255,92,138,.35);
+  border-radius:8px;font-family:var(--mono);font-size:.7rem;
+  color:var(--red);text-align:center;
+}
+.login-error.show{display:block}
+.login-footer{margin-top:1.25rem;text-align:center;font-family:var(--mono);font-size:.58rem;color:var(--text3);letter-spacing:1.5px}
 </style>
 </head>
 <body>
+
+<!-- ── LOGIN OVERLAY ── -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-card">
+    <div class="login-logo">
+      <h2>Smart Tool Log Parser</h2>
+      <div class="sub">NATIONAL AI STUDENT CHALLENGE 2026</div>
+      <div class="team-pill">Team Algorithm</div>
+    </div>
+    <div class="login-divider"></div>
+    <div class="form-group">
+      <label class="form-label">Username</label>
+      <input class="form-input" type="text" id="loginUsername" placeholder="Enter username" autocomplete="username"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <div style="position:relative">
+        <input class="form-input" type="password" id="loginPassword" placeholder="Enter password" autocomplete="current-password" style="padding-right:3rem"/>
+        <button onclick="togglePw()" id="eyeBtn" type="button" style="position:absolute;right:0.75rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:1.1rem;padding:0;transition:color .2s" onmouseover="this.style.color='var(--purple2)'" onmouseout="this.style.color='var(--text3)'">👁</button>
+      </div>
+    </div>
+    <button class="login-btn" id="loginSubmitBtn" onclick="doLogin()">Access System</button>
+    <div class="login-error" id="loginError">Invalid username or password. Please try again.</div>
+    <div class="login-footer">MICRON × AISG — AUTHORISED ACCESS ONLY</div>
+  </div>
+</div>
 
 <header>
   <div class="header-titles">
     <h1>Smart Tool Log Parser</h1>
     <div class="header-sub">
-      <span class="challenge">NATIONAL AI STUDENT CHALLENGE 2026</span>
+      <span class="challenge">NATIONAL AI STUDENT CHALLENGE 2025</span>
       <span class="team-badge">Team Algorithm</span>
     </div>
   </div>
@@ -518,7 +619,22 @@ td{padding:.7rem .8rem;vertical-align:top}
 
 <script>
 let currentResult=null,activeSession=null;
-document.addEventListener("DOMContentLoaded",()=>{loadHistory();setupUpload()});
+document.addEventListener("DOMContentLoaded", async () => {
+  // Check if already authenticated
+  try {
+    const r = await fetch('/api/check-auth');
+    const d = await r.json();
+    if(d.authenticated){
+      document.getElementById('loginOverlay').classList.add('hidden');
+      setTimeout(()=>{ document.getElementById('loginOverlay').style.display='none'; }, 400);
+    }
+  } catch(e) {}
+  loadHistory();
+  setupUpload();
+  // Allow Enter key on login
+  document.getElementById('loginPassword').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+  document.getElementById('loginUsername').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+});
 function switchTab(id){document.querySelectorAll("[id^=tab-]").forEach(el=>el.style.display="none");document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));document.getElementById("tab-"+id).style.display="block";document.querySelector("[data-tab="+id+"]").classList.add("active")}
 function showToast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),3000)}
 let _pctInterval = null;
@@ -565,6 +681,63 @@ async function uploadFile(file){setLoading(true,`UPLOADING ${file.name.toUpperCa
 function displayResult(data){currentResult=data;activeSession=data.session_id;document.getElementById("emptyState").style.display="none";document.getElementById("resultState").style.display="block";document.getElementById("res-filename").textContent=data.filename;document.getElementById("res-tool").textContent=data.tool_type||"—";document.getElementById("res-summary").textContent=data.overall_summary||"—";document.getElementById("res-format").textContent=data.format;document.getElementById("res-count").textContent=`${data.record_count} RECORDS`;document.getElementById("res-session").textContent=`SESSION: ${data.session_id}`;renderRecords(data.records||[]);switchTab("results")}
 function renderRecords(records){const body=document.getElementById("recordsBody");body.innerHTML=records.map((r,i)=>{const params=r.parameters||{},alarms=r.alarms||[],paramHtml=Object.entries(params).slice(0,5).map(([k,v])=>`<div class="param-tag">${k}: <span>${v}</span></div>`).join(""),alarmHtml=alarms.map(a=>`<div class="alarm-item">⚠ ${a}</div>`).join(""),sev=r.severity||"INFO";return`<tr><td style="color:var(--text3);font-family:var(--mono);font-size:.68rem">${i+1}</td><td class="td-timestamp">${r.timestamp||"—"}</td><td class="td-tool">${r.tool_id||"—"}</td><td><span class="event-badge">${r.event_type||"—"}</span></td><td><span class="sev-badge sev-${sev}">${sev}</span></td><td class="td-summary">${r.summary||"—"}</td><td><div class="params-grid">${paramHtml||"<span style='color:var(--text3);font-size:.7rem'>—</span>"}</div></td><td><div class="alarm-list">${alarmHtml||"<span style='color:var(--text3);font-size:.7rem'>—</span>"}</div></td><td><button class="expand-btn" onclick="toggleRaw(this,${i})">⊕</button><div id="raw-${i}" style="display:none"><div class="raw-snippet">${(r.raw_snippet||"").replace(/</g,"&lt;").replace(/>/g,"&gt;")}</div></div></td></tr>`}).join("")}
 function toggleRaw(btn,idx){const el=document.getElementById(`raw-${idx}`),v=el.style.display!=="none";el.style.display=v?"none":"block";btn.textContent=v?"⊕":"⊖"}
+function togglePw(){
+  const inp = document.getElementById('loginPassword');
+  const btn = document.getElementById('eyeBtn');
+  if(inp.type==='password'){
+    inp.type='text';
+    btn.textContent='🙈';
+  } else {
+    inp.type='password';
+    btn.textContent='👁';
+  }
+}
+async function doLogin(){
+  const username = document.getElementById('loginUsername').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const btn = document.getElementById('loginSubmitBtn');
+  const err = document.getElementById('loginError');
+  if(!username||!password){
+    err.textContent='Please enter both username and password.';
+    err.classList.add('show'); return;
+  }
+  btn.disabled=true; btn.textContent='Authenticating...';
+  err.classList.remove('show');
+  try{
+    const res = await fetch('/api/login',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({username,password})
+    });
+    const data = await res.json();
+    if(data.success){
+      btn.textContent='Access Granted ✓';
+      btn.style.background='linear-gradient(135deg,#2d6a4f,#40916c)';
+      setTimeout(()=>{
+        document.getElementById('loginOverlay').classList.add('hidden');
+        setTimeout(()=>document.getElementById('loginOverlay').style.display='none',400);
+      },700);
+    } else {
+      err.textContent='Invalid username or password. Please try again.';
+      err.classList.add('show');
+      btn.disabled=false; btn.textContent='Access System';
+      document.getElementById('loginPassword').value='';
+      document.getElementById('loginPassword').focus();
+    }
+  }catch(e){
+    err.textContent='Connection error. Please try again.';
+    err.classList.add('show');
+    btn.disabled=false; btn.textContent='Access System';
+  }
+}
+// Allow Enter key to submit login
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&document.getElementById('loginOverlay').style.display!=='none'
+    &&!document.getElementById('loginOverlay').classList.contains('hidden')){
+    doLogin();
+  }
+});
+
 function exportCSV(){if(!currentResult)return;const records=currentResult.records||[],headers=["#","timestamp","tool_id","event_type","severity","summary","alarms"],rows=records.map((r,i)=>[i+1,r.timestamp||"",r.tool_id||"",r.event_type||"",r.severity||"",`"${(r.summary||"").replace(/"/g,'""')}"`,`"${(r.alarms||[]).join("; ")}"`]),csv=[headers,...rows].map(r=>r.join(",")).join("\n"),blob=new Blob([csv],{type:"text/csv"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`parsed_${currentResult.filename.replace(/\.[^/.]+$/,"")}.csv`;a.click();showToast("CSV exported")}
 </script>
 </body>

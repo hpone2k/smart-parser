@@ -1,27 +1,12 @@
 import uuid
 import sys
-from pathlib import Path
-from fastapi import FastAPI, UploadFile, File, HTTPException, Request, Response, Depends
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
-import uvicorn
 import hashlib
 import secrets
-
-# ── Auth config ──────────────────────────────────────────
-USERNAME = "Team Algorithm"
-PASSWORD = "AlgorithmChampions2026"
-SECRET_KEY = secrets.token_hex(32)
-SESSIONS = set()  # stores valid session tokens
-
-def hash_password(pw: str) -> str:
-    return hashlib.sha256(pw.encode()).hexdigest()
-
-PASSWORD_HASH = hash_password(PASSWORD)
-
-def get_session(request: Request) -> bool:
-    token = request.cookies.get("session_token")
-    return token in SESSIONS
+from pathlib import Path
+from fastapi import FastAPI, UploadFile, File, HTTPException, Request, Response
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse, JSONResponse
+import uvicorn
 
 sys.path.insert(0, str(Path(__file__).parent))
 
@@ -29,18 +14,25 @@ from parser.detector import detect_format, preprocess
 from parser.ai_parser import parse_with_ai
 from database.db import init_db, save_parsed_records, get_all_sessions, get_session_records, get_stats
 
+# ── Auth ─────────────────────────────────────────────────
+USERNAME = "Team Algorithm"
+PASSWORD = "AlgorithmChampions2026"
+PASSWORD_HASH = hashlib.sha256(PASSWORD.encode()).hexdigest()
+SESSIONS = set()
+
+def is_auth(request: Request) -> bool:
+    return request.cookies.get("session_token") in SESSIONS
+
 app = FastAPI(title="Micron Smart Tool Log Parser", version="2.0.0")
 
 init_db()
 
-# Auto-create required directories and generate sample logs if missing
+# Auto-generate sample logs on startup
 def startup_setup():
     logs_dir = Path(__file__).parent / "synthetic" / "logs"
     logs_dir.mkdir(parents=True, exist_ok=True)
     if not any(logs_dir.iterdir()):
         try:
-            import sys
-            sys.path.insert(0, str(Path(__file__).parent))
             from synthetic.generator import generate_all
             generate_all()
         except Exception as e:
@@ -48,30 +40,32 @@ def startup_setup():
 
 startup_setup()
 
+# Mount static files
 app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "static")), name="static")
 
 
 @app.get("/")
-async def root(request: Request):
-    if not get_session(request):
-        return FileResponse(str(Path(__file__).parent / "static" / "login.html"))
+async def root():
+    # Always serve index.html — login is handled inside it
     return FileResponse(str(Path(__file__).parent / "static" / "index.html"))
+
 
 @app.post("/api/login")
 async def login(request: Request):
     data = await request.json()
     username = data.get("username", "")
     password = data.get("password", "")
-    if username == USERNAME and hash_password(password) == PASSWORD_HASH:
+    if username == USERNAME and hashlib.sha256(password.encode()).hexdigest() == PASSWORD_HASH:
         token = secrets.token_hex(32)
         SESSIONS.add(token)
         response = JSONResponse({"success": True})
-        response.set_cookie("session_token", token, httponly=True, max_age=86400*7)
+        response.set_cookie("session_token", token, httponly=True, max_age=86400 * 7, samesite="lax")
         return response
     return JSONResponse({"success": False, "message": "Invalid username or password"}, status_code=401)
 
+
 @app.post("/api/logout")
-async def logout(request: Request, response: Response):
+async def logout(request: Request):
     token = request.cookies.get("session_token")
     SESSIONS.discard(token)
     response = JSONResponse({"success": True})
@@ -79,28 +73,24 @@ async def logout(request: Request, response: Response):
     return response
 
 
+@app.get("/api/check-auth")
+async def check_auth(request: Request):
+    return JSONResponse({"authenticated": is_auth(request)})
+
+
 @app.post("/api/parse")
 async def parse_log(request: Request, file: UploadFile = File(...)):
-    if not get_session(request):
+    if not is_auth(request):
         raise HTTPException(status_code=401, detail="Unauthorized")
     try:
         content = await file.read()
         filename = file.filename or "unknown.log"
-
-        # Detect format
         fmt = detect_format(filename, content)
-
-        # Smart preprocess — returns (text, metadata)
         log_text, metadata = preprocess(content, fmt)
-
-        # AI parse with metadata context
         result = parse_with_ai(log_text, fmt, filename, metadata)
-
-        # Save to DB
         session_id = str(uuid.uuid4())[:8].upper()
         records = result.get("records", [])
         save_parsed_records(session_id, filename, fmt, records)
-
         return JSONResponse({
             "session_id": session_id,
             "filename": filename,
@@ -113,31 +103,33 @@ async def parse_log(request: Request, file: UploadFile = File(...)):
             "was_sampled": metadata.get("truncated", False),
             "records": records
         })
-
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/sessions")
-async def list_sessions():
+async def list_sessions(request: Request):
+    if not is_auth(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
     return get_all_sessions()
 
 
 @app.get("/api/sessions/{session_id}")
-async def get_session(session_id: str):
+async def get_session(session_id: str, request: Request):
+    if not is_auth(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
     records = get_session_records(session_id)
     if not records:
         raise HTTPException(status_code=404, detail="Session not found")
     return records
 
 
-@app.get("/api/stats")
-async def stats():
-    return get_stats()
-
-
 @app.delete("/api/sessions/all")
-async def delete_all_sessions():
+async def delete_all_sessions(request: Request):
+    if not is_auth(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
     from database.db import get_connection
     conn = get_connection()
     conn.execute("DELETE FROM parsed_logs")
@@ -147,20 +139,27 @@ async def delete_all_sessions():
     return {"message": "All sessions deleted"}
 
 
+@app.get("/api/stats")
+async def stats(request: Request):
+    if not is_auth(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    return get_stats()
+
+
 @app.get("/api/sample-logs")
-async def list_sample_logs():
+async def list_sample_logs(request: Request):
+    if not is_auth(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
     logs_dir = Path(__file__).parent / "synthetic" / "logs"
     if not logs_dir.exists():
         return []
-    files = []
-    for f in logs_dir.iterdir():
-        if f.is_file():
-            files.append({"name": f.name, "size": f.stat().st_size})
-    return files
+    return [{"name": f.name, "size": f.stat().st_size} for f in logs_dir.iterdir() if f.is_file()]
 
 
 @app.get("/api/sample-logs/{filename}")
-async def get_sample_log(filename: str):
+async def get_sample_log(filename: str, request: Request):
+    if not is_auth(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
     logs_dir = Path(__file__).parent / "synthetic" / "logs"
     path = logs_dir / filename
     if not path.exists():
