@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Smart Tool Log Parser — Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500;700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg:#07050f;--bg2:#0c0818;--bg3:#100d1f;--panel:#120f22;--panel2:#16122a;
+    --border:#2a1f4a;--border2:#3d2d6e;
+    --purple:#9b59f5;--purple2:#b980ff;--purple3:#6c3bbf;--violet:#c77dff;--pink:#e040fb;
+    --blue:#7c83ff;--green:#69ffb4;--red:#ff5c8a;--orange:#ff9e64;
+    --text:#e8e0ff;--text2:#9d8ec4;--text3:#5a4d7a;
+    --mono:'JetBrains Mono',monospace;--head:'Syne',sans-serif;--body:'Outfit',sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:var(--bg);color:var(--text);font-family:var(--body);
+    min-height:100vh;display:flex;align-items:center;justify-content:center;
+    overflow:hidden;
+  }
+
+  /* Animated background */
+  body::before{
+    content:'';position:fixed;inset:0;z-index:0;
+    background:
+      radial-gradient(ellipse 80% 60% at 20% 10%,rgba(155,89,245,.15) 0%,transparent 60%),
+      radial-gradient(ellipse 60% 50% at 80% 80%,rgba(199,125,255,.1) 0%,transparent 55%),
+      radial-gradient(ellipse 40% 40% at 60% 30%,rgba(224,64,251,.06) 0%,transparent 50%);
+    pointer-events:none;animation:bgPulse 8s ease-in-out infinite alternate;
+  }
+  body::after{
+    content:'';position:fixed;inset:0;z-index:0;
+    background-image:
+      linear-gradient(rgba(155,89,245,.04) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(155,89,245,.04) 1px,transparent 1px);
+    background-size:48px 48px;pointer-events:none;
+  }
+  @keyframes bgPulse{0%{opacity:1;transform:scale(1)}100%{opacity:.7;transform:scale(1.05)}}
+
+  /* Card */
+  .login-card{
+    position:relative;z-index:1;
+    width:100%;max-width:420px;margin:1rem;
+    background:linear-gradient(135deg,var(--panel) 0%,rgba(155,89,245,.06) 100%);
+    border:1px solid var(--border2);border-radius:20px;
+    padding:2.5rem 2rem;
+    box-shadow:0 0 40px rgba(155,89,245,.2), 0 0 80px rgba(155,89,245,.08);
+    animation:cardGlow 4s ease-in-out infinite alternate;
+  }
+  @keyframes cardGlow{
+    0%{box-shadow:0 0 30px rgba(155,89,245,.2),0 0 60px rgba(155,89,245,.08)}
+    50%{box-shadow:0 0 40px rgba(199,125,255,.25),0 0 80px rgba(199,125,255,.1)}
+    100%{box-shadow:0 0 35px rgba(224,64,251,.2),0 0 70px rgba(224,64,251,.08)}
+  }
+
+  /* Top gradient line */
+  .login-card::before{
+    content:'';position:absolute;top:0;left:0;right:0;height:2px;
+    background:linear-gradient(90deg,var(--purple3),var(--purple),var(--violet),var(--pink),var(--blue),var(--purple));
+    background-size:200% 100%;border-radius:20px 20px 0 0;
+    animation:borderSlide 3s linear infinite;
+  }
+  @keyframes borderSlide{0%{background-position:0% 0%}100%{background-position:200% 0%}}
+
+  /* Logo area */
+  .login-logo{text-align:center;margin-bottom:2rem}
+  .login-logo h1{
+    font-family:var(--head);font-size:1.4rem;font-weight:800;
+    letter-spacing:2px;text-transform:uppercase;
+    background:linear-gradient(135deg,var(--purple2) 0%,var(--violet) 50%,var(--pink) 100%);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+    margin-bottom:.3rem;
+  }
+  .login-logo .sub{
+    font-family:var(--mono);font-size:.6rem;color:var(--text3);
+    letter-spacing:2px;
+  }
+  .login-logo .team{
+    display:inline-block;margin-top:.6rem;
+    font-family:var(--mono);font-size:.65rem;font-weight:700;
+    color:var(--purple2);background:rgba(155,89,245,.15);
+    border:1px solid rgba(155,89,245,.35);border-radius:20px;
+    padding:3px 14px;animation:rgbCycle 6s linear infinite;
+  }
+  @keyframes rgbCycle{
+    0%{color:#b980ff;border-color:rgba(185,128,255,.5)}
+    25%{color:#7c83ff;border-color:rgba(124,131,255,.5)}
+    50%{color:#69ffb4;border-color:rgba(105,255,180,.5)}
+    75%{color:#e040fb;border-color:rgba(224,64,251,.5)}
+    100%{color:#b980ff;border-color:rgba(185,128,255,.5)}
+  }
+
+  /* Divider */
+  .divider{height:1px;background:linear-gradient(90deg,transparent,var(--border2),transparent);margin-bottom:1.75rem}
+
+  /* Form */
+  .form-group{margin-bottom:1.25rem}
+  .form-label{
+    display:block;font-family:var(--mono);font-size:.62rem;
+    color:var(--text3);letter-spacing:2px;text-transform:uppercase;
+    margin-bottom:.5rem;
+  }
+  .form-input{
+    width:100%;background:var(--bg3);border:1px solid var(--border2);
+    border-radius:8px;padding:.75rem 1rem;
+    font-family:var(--mono);font-size:.85rem;color:var(--text);
+    outline:none;transition:all .2s;
+  }
+  .form-input:focus{
+    border-color:var(--purple);
+    box-shadow:0 0 0 3px rgba(155,89,245,.15);
+  }
+  .form-input::placeholder{color:var(--text3)}
+
+  /* Login button */
+  .login-btn{
+    width:100%;margin-top:1.5rem;
+    background:linear-gradient(135deg,var(--purple3),var(--purple),var(--violet));
+    border:none;border-radius:10px;padding:.9rem;
+    font-family:var(--head);font-size:.85rem;font-weight:700;
+    color:white;letter-spacing:2px;text-transform:uppercase;
+    cursor:pointer;transition:all .25s;
+    box-shadow:0 4px 20px rgba(155,89,245,.3);
+  }
+  .login-btn:hover{
+    transform:translateY(-2px);
+    box-shadow:0 8px 30px rgba(155,89,245,.45);
+  }
+  .login-btn:active{transform:translateY(0)}
+  .login-btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+
+  /* Error message */
+  .error-msg{
+    display:none;margin-top:1rem;padding:.75rem 1rem;
+    background:rgba(255,92,138,.1);border:1px solid rgba(255,92,138,.35);
+    border-radius:8px;font-family:var(--mono);font-size:.72rem;
+    color:var(--red);text-align:center;
+  }
+  .error-msg.show{display:block}
+
+  /* Loading state */
+  .login-btn.loading{pointer-events:none}
+  .login-btn.loading::after{
+    content:'...';animation:dots 1s steps(3,end) infinite;
+  }
+  @keyframes dots{0%,20%{content:''}40%{content:'.'}60%{content:'..'}80%,100%{content:'...'}}
+
+  /* Micron badge bottom */
+  .bottom-badge{
+    margin-top:1.5rem;text-align:center;
+    font-family:var(--mono);font-size:.6rem;color:var(--text3);
+    letter-spacing:2px;
+  }
+</style>
+</head>
+<body>
+
+<div class="login-card">
+  <div class="login-logo">
+    <h1>Smart Tool Log Parser</h1>
+    <div class="sub">NATIONAL AI STUDENT CHALLENGE 2026</div>
+    <div class="team">Team Algorithm</div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="form-group">
+    <label class="form-label">Username</label>
+    <input class="form-input" type="text" id="username" placeholder="Enter username" autocomplete="username"/>
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">Password</label>
+    <input class="form-input" type="password" id="password" placeholder="Enter password" autocomplete="current-password"/>
+  </div>
+
+  <button class="login-btn" id="loginBtn" onclick="doLogin()">Access System</button>
+
+  <div class="error-msg" id="errorMsg">Invalid username or password. Please try again.</div>
+
+  <div class="bottom-badge">MICRON × AISG — AUTHORISED ACCESS ONLY</div>
+</div>
+
+<script>
+  // Allow pressing Enter to login
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLogin();
+  });
+
+  async function doLogin() {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    const btn = document.getElementById('loginBtn');
+    const err = document.getElementById('errorMsg');
+
+    if (!username || !password) {
+      err.textContent = 'Please enter both username and password.';
+      err.classList.add('show');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.classList.add('loading');
+    btn.textContent = 'Authenticating';
+    err.classList.remove('show');
+
+    try {
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({username, password})
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        btn.textContent = 'Access Granted ✓';
+        btn.style.background = 'linear-gradient(135deg,#2d6a4f,#40916c)';
+        setTimeout(() => window.location.href = '/', 800);
+      } else {
+        err.textContent = 'Invalid username or password. Please try again.';
+        err.classList.add('show');
+        btn.disabled = false;
+        btn.classList.remove('loading');
+        btn.textContent = 'Access System';
+        document.getElementById('password').value = '';
+        document.getElementById('password').focus();
+      }
+    } catch(e) {
+      err.textContent = 'Connection error. Please try again.';
+      err.classList.add('show');
+      btn.disabled = false;
+      btn.classList.remove('loading');
+      btn.textContent = 'Access System';
+    }
+  }
+</script>
+</body>
+</html>

@@ -1,10 +1,27 @@
 import uuid
 import sys
 from pathlib import Path
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Request, Response, Depends
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 import uvicorn
+import hashlib
+import secrets
+
+# ── Auth config ──────────────────────────────────────────
+USERNAME = "Team Algorithm"
+PASSWORD = "AlgorithmChampions2026"
+SECRET_KEY = secrets.token_hex(32)
+SESSIONS = set()  # stores valid session tokens
+
+def hash_password(pw: str) -> str:
+    return hashlib.sha256(pw.encode()).hexdigest()
+
+PASSWORD_HASH = hash_password(PASSWORD)
+
+def get_session(request: Request) -> bool:
+    token = request.cookies.get("session_token")
+    return token in SESSIONS
 
 sys.path.insert(0, str(Path(__file__).parent))
 
@@ -35,12 +52,37 @@ app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "static")
 
 
 @app.get("/")
-async def root():
+async def root(request: Request):
+    if not get_session(request):
+        return FileResponse(str(Path(__file__).parent / "static" / "login.html"))
     return FileResponse(str(Path(__file__).parent / "static" / "index.html"))
+
+@app.post("/api/login")
+async def login(request: Request):
+    data = await request.json()
+    username = data.get("username", "")
+    password = data.get("password", "")
+    if username == USERNAME and hash_password(password) == PASSWORD_HASH:
+        token = secrets.token_hex(32)
+        SESSIONS.add(token)
+        response = JSONResponse({"success": True})
+        response.set_cookie("session_token", token, httponly=True, max_age=86400*7)
+        return response
+    return JSONResponse({"success": False, "message": "Invalid username or password"}, status_code=401)
+
+@app.post("/api/logout")
+async def logout(request: Request, response: Response):
+    token = request.cookies.get("session_token")
+    SESSIONS.discard(token)
+    response = JSONResponse({"success": True})
+    response.delete_cookie("session_token")
+    return response
 
 
 @app.post("/api/parse")
-async def parse_log(file: UploadFile = File(...)):
+async def parse_log(request: Request, file: UploadFile = File(...)):
+    if not get_session(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
     try:
         content = await file.read()
         filename = file.filename or "unknown.log"
