@@ -16,6 +16,21 @@ app = FastAPI(title="Micron Smart Tool Log Parser", version="2.0.0")
 
 init_db()
 
+# Auto-create required directories and generate sample logs if missing
+def startup_setup():
+    logs_dir = Path(__file__).parent / "synthetic" / "logs"
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    if not any(logs_dir.iterdir()):
+        try:
+            import sys
+            sys.path.insert(0, str(Path(__file__).parent))
+            from synthetic.generator import generate_all
+            generate_all()
+        except Exception as e:
+            print(f"Could not generate sample logs: {e}")
+
+startup_setup()
+
 app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "static")), name="static")
 
 
