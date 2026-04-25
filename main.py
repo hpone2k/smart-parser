@@ -15,8 +15,8 @@ from parser.ai_parser import parse_with_ai
 from database.db import init_db, save_parsed_records, get_all_sessions, get_session_records, get_stats
 
 # ── Auth ─────────────────────────────────────────────────
-USERNAME = "Team Algorithm"
-PASSWORD = "AlgorithmChampions2026"
+USERNAME = "Team Logorithm"
+PASSWORD = "LogorithmChampions2026"
 PASSWORD_HASH = hashlib.sha256(PASSWORD.encode()).hexdigest()
 SESSIONS = set()
 
